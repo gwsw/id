@@ -1,0 +1,147 @@
+<!doctype html>
+<meta charset="UTF-8">
+<html>
+<head>
+<title>Intensity Mapper</title>
+</head>
+<body onload="main()">
+<canvas id="canvas" width="1" height="1" style="font-family:Arial"></canvas>
+
+<script src="../jlib/gfx.js"></script>
+
+<script>
+
+// --------------------------------------------------------------------
+// Globals
+var _game = null;
+
+var config = {
+    color_meter_fg         : "a05010",
+    color_meter_bg         : "000000",
+    color_bg               : "002050",
+};
+
+// --------------------------------------------------------------------
+class ID { // interface
+	constructor(inten) {
+		this.set_intensity(inten);
+	}
+	set_intensity(inten) {
+		this.inten = inten;
+	}
+	///update() {}
+	draw(gfx, x, y, w, h) { pure(); }
+};
+
+// --------------------------------------------------------------------
+class ID_RectMeter extends ID {
+	constructor(inten, fg, bg) {
+		super(inten);
+		this.fg = fg;
+		this.bg = bg;
+	}
+	///update() { this.set_intensity(?); }
+	draw(gfx, x, y, w, h) {
+		gfx.draw_rect(x, y, w, h, this.bg);
+		let wa = w * this.inten;
+		gfx.draw_rect(x, y, wa, h, this.fg);
+	}
+};
+
+// --------------------------------------------------------------------
+///class Board {
+///    constructor(w, h) {
+///        this.set_size(w, h);
+///    }
+///    set_size(w, h) {
+///        this.w = w;
+///        this.h = h;
+///    }
+///    draw(gfx) {
+///        ///this.#draw_stones(gfx, sz);
+///		gfx.draw_rect(20,20,220,120, color_green);
+///    }
+///    mouse(gfx, bx, by) {
+///    }
+///};
+
+// --------------------------------------------------------------------
+class Game {
+    constructor(gfx, w, h) {
+        this.gfx = gfx;
+		this.meter = new ID_RectMeter(0, config.color_meter_fg, config.color_meter_bg);
+    }
+    resize(width, height) {
+        const s = Math.min(width, height);
+        this.gfx.set_font_size(s*.040);
+        this.draw();
+    }
+	run() {
+		{
+			const period = 5500;
+			const phase = (now() % period) / period;
+			let intens = Math.sin(2*Math.PI*phase);
+			if (intens < 0) intens = -intens;
+			this.meter.set_intensity(intens);
+			///this.meter.update(); ///
+		}
+		this.draw();
+	}
+    draw() {
+        this.gfx.clear(config.color_bg);
+		this.meter.draw(this.gfx, 40, 80, 200, 60);
+    }
+    event_mouse(event, x, y) {
+        if (event == Game.MOUSE_DOWN) {
+			///this.draw();
+        }
+    }
+
+    static _event_mousedown(e) { if (_game != null) _game.event_mouse(Game.MOUSE_DOWN, e.offsetX, e.offsetY); }
+    static _event_mouseup(e) { if (_game != null) _game.event_mouse(Game.MOUSE_UP, e.offsetX, e.offsetY); }
+    static _event_mousemove(e) { if (_game != null) _game.event_mouse(Game.MOUSE_MOVE, e.offsetX, e.offsetY); }
+
+    static MOUSE_DOWN = 0;
+    static MOUSE_UP   = 1;
+    static MOUSE_MOVE = 2;
+}; // class Game
+
+// --------------------------------------------------------------------
+function canvas_to_window() {
+    const canvas = el("canvas");
+    const s = 20;
+    canvas.width = window.innerWidth - s;
+    canvas.height = window.innerHeight - s;
+    return canvas;
+}
+
+function canvas_resize() {
+    const canvas = canvas_to_window();
+    if (_game != null) _game.resize(canvas.width, canvas.height);
+}
+
+function run_game() {
+    if (_game != null) _game.run();
+    window.requestAnimationFrame(run_game);
+}
+
+function main() {
+    munge_config();
+    const canvas = canvas_to_window();
+    const gfx = new Graphics(canvas.getContext("2d"));
+    _game = new Game(gfx, 19, 19);
+    _game.resize(canvas.width, canvas.height);
+    window.addEventListener('resize', canvas_resize, false);
+    document.addEventListener('mousedown', Game._event_mousedown);
+    document.addEventListener('mouseup', Game._event_mouseup);
+    document.addEventListener('mousemove', Game._event_mousemove);
+    run_game();
+}
+
+function pure() {
+	console.error("attempt to call a PURE function, you degenerate!");
+}
+
+</script>
+</body>
+</html>
