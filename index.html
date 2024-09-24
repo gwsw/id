@@ -49,6 +49,20 @@ class ID_RectMeter extends ID {
 };
 
 // --------------------------------------------------------------------
+class ID_Pulse {
+	constructor(period) {
+		if (period == 0) period = 1;
+		this.period = period;
+	}
+	get_intensity() {
+		const phase = (now() % this.period) / this.period;
+		let intens = Math.sin(2*Math.PI * phase);
+		if (intens < 0) intens = -intens;
+		return intens;
+	}
+};
+
+// --------------------------------------------------------------------
 ///class Board {
 ///    constructor(w, h) {
 ///        this.set_size(w, h);
@@ -70,6 +84,7 @@ class Game {
     constructor(gfx, w, h) {
         this.gfx = gfx;
 		this.meter = new ID_RectMeter(0, config.color_meter_fg, config.color_meter_bg);
+		this.input = new ID_Pulse(5500);
     }
     resize(width, height) {
         const s = Math.min(width, height);
@@ -77,14 +92,8 @@ class Game {
         this.draw();
     }
 	run() {
-		{
-			const period = 5500;
-			const phase = (now() % period) / period;
-			let intens = Math.sin(2*Math.PI*phase);
-			if (intens < 0) intens = -intens;
-			this.meter.set_intensity(intens);
-			///this.meter.update(); ///
-		}
+		const intens = this.input.get_intensity();
+		this.meter.set_intensity(intens);
 		this.draw();
 	}
     draw() {
