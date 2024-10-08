@@ -15,7 +15,7 @@
  <tr>
   <td>
    <select name="input" id="sel_input" onchange="Game._event_io_changed()">
-    <option value="pulse"> Pulse </option>
+    <option value="sine"> Sine wave </option>
    </select>
   </td>
   <td>
@@ -38,7 +38,7 @@
 var _game = null;
 
 var config = {
-    pulse_period           : 3500,
+    sine_period            : 3500,
 
     color_meter_fg         : "a05010",
     color_meter_bg         : "000000",
@@ -117,7 +117,7 @@ class ID_WidenMeter extends ID_Output {
 };
 
 // --------------------------------------------------------------------
-class ID_Pulse extends ID_Input {
+class ID_Sine extends ID_Input {
     constructor(period) {
         super();
         if (period == 0) period = 1;
@@ -145,7 +145,7 @@ class Game {
     }
     static new_input(type) {
         switch (type) {
-        case 0: return new ID_Pulse(5500);
+        case 0: return new ID_Sine(5500);
         }
         return null;
     }
@@ -207,7 +207,7 @@ function canvas_to_window() {
     const canvas = el("canvas");
     const s = 20;
     canvas.width = window.innerWidth - s;
-    canvas.height = window.innerHeight/2 - s;
+    canvas.height = window.innerHeight - el("ctls").offsetHeight - s;
     return canvas;
 }
 
