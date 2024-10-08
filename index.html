@@ -23,34 +23,79 @@ var config = {
 
 // --------------------------------------------------------------------
 class ID { // interface
-	constructor(inten) {
-		this.set_intensity(inten);
+	constructor(input, output) {
+		this.input = input;
+		this.output = output;
+		this.set_intensity(0);
 	}
-	set_intensity(inten) {
-		this.inten = inten;
+	set_intensity(intens) {
+		this.intens = intens;
 	}
-	///update() {}
+	update() {
+		this.set_intensity(this.input.get_intensity());
+	}
+	draw(gfx, x, y, w, h) {
+		this.output.set_intensity(this.intens);
+		this.output.draw(gfx, x, y, w, h);
+	}
+};
+
+// --------------------------------------------------------------------
+class ID_Input { // interface
+	constructor() {
+	}
+	get_intensity() { pure(); }
+};
+
+// --------------------------------------------------------------------
+class ID_Output { // interface
+	constructor() {
+	}
+	set_intensity(intens) { pure(); }
 	draw(gfx, x, y, w, h) { pure(); }
 };
 
 // --------------------------------------------------------------------
-class ID_RectMeter extends ID {
-	constructor(inten, fg, bg) {
-		super(inten);
+class ID_RectMeter extends ID_Output {
+	constructor(fg, bg) {
+		super();
 		this.fg = fg;
 		this.bg = bg;
+		this.set_intensity(0);
 	}
-	///update() { this.set_intensity(?); }
+	set_intensity(intens) {
+		this.intens = intens;
+	}
 	draw(gfx, x, y, w, h) {
 		gfx.draw_rect(x, y, w, h, this.bg);
-		let wa = w * this.inten;
+		let wa = w * this.intens;
 		gfx.draw_rect(x, y, wa, h, this.fg);
 	}
 };
 
 // --------------------------------------------------------------------
-class ID_Pulse {
+class ID_WidenMeter extends ID_Output {
+	constructor(fg, bg) {
+		super();
+		this.fg = fg;
+		this.bg = bg;
+		this.set_intensity(0);
+	}
+	set_intensity(intens) {
+		this.intens = intens;
+	}
+	draw(gfx, x, y, w, h) {
+		gfx.draw_rect(x, y, w, h, this.bg);
+		let wa = w * this.intens / 2;
+		///gfx.draw_rect(x + wa, y, 2*wa, h, this.fg);
+		gfx.draw_rect(x + w/2 - wa, y, 2*wa, h, this.fg);
+	}
+};
+
+// --------------------------------------------------------------------
+class ID_Pulse extends ID_Input {
 	constructor(period) {
+		super();
 		if (period == 0) period = 1;
 		this.period = period;
 	}
@@ -63,28 +108,13 @@ class ID_Pulse {
 };
 
 // --------------------------------------------------------------------
-///class Board {
-///    constructor(w, h) {
-///        this.set_size(w, h);
-///    }
-///    set_size(w, h) {
-///        this.w = w;
-///        this.h = h;
-///    }
-///    draw(gfx) {
-///        ///this.#draw_stones(gfx, sz);
-///		gfx.draw_rect(20,20,220,120, color_green);
-///    }
-///    mouse(gfx, bx, by) {
-///    }
-///};
-
-// --------------------------------------------------------------------
 class Game {
     constructor(gfx, w, h) {
         this.gfx = gfx;
-		this.meter = new ID_RectMeter(0, config.color_meter_fg, config.color_meter_bg);
-		this.input = new ID_Pulse(5500);
+		const input = new ID_Pulse(5500);
+		///const output = new ID_RectMeter(config.color_meter_fg, config.color_meter_bg);
+		const output = new ID_WidenMeter(config.color_meter_fg, config.color_meter_bg);
+		this.id = new ID(input, output);
     }
     resize(width, height) {
         const s = Math.min(width, height);
@@ -92,13 +122,13 @@ class Game {
         this.draw();
     }
 	run() {
-		const intens = this.input.get_intensity();
-		this.meter.set_intensity(intens);
+		const intens = this.id.input.get_intensity();
+		this.id.set_intensity(intens);
 		this.draw();
 	}
     draw() {
         this.gfx.clear(config.color_bg);
-		this.meter.draw(this.gfx, 40, 80, 200, 60);
+		this.id.draw(this.gfx, 40, 80, 200, 60);
     }
     event_mouse(event, x, y) {
         if (event == Game.MOUSE_DOWN) {
