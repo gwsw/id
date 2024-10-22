@@ -11,6 +11,7 @@
  <tr>
   <td> Input </td>
   <td> Output </td>
+  <td id="jags_hdr" style="display:none"> Jags </td>
  </tr>
  <tr>
   <td>
@@ -22,9 +23,11 @@
    <select name="output" id="sel_output" onchange="Game._event_io_changed()">
     <option value="rect"> Rect </option>
     <option value="widen"> Widen </option>
+    <option value="fire"> Fire </option>
    </select>
   </td>
   <td>
+   <input type="number" id="jags" value="7" onchange="Game._event_io_changed()" style="display:none"/>
   </td>
  </tr>
 </table>
@@ -117,6 +120,41 @@ class ID_WidenMeter extends ID_Output {
 };
 
 // --------------------------------------------------------------------
+class ID_FireMeter extends ID_Output {
+    constructor(jags, fg, bg) {
+        super();
+        this.jags = [];
+        while (this.jags.length < jags/2)
+            this.jags.push(randu(1000) / 1000);
+        this.fg = fg;
+        this.bg = bg;
+        this.set_intensity(0);
+    }
+    set_intensity(intens) {
+        this.intens = intens;
+    }
+    draw(gfx, x, y, w, h) {
+        gfx.draw_rect(x, y, w, h, this.bg);
+        const rsv = 0.06;
+        const jlen = this.jags.length;
+        const klen = 2*jlen-1;
+        const step = w / (2*klen);
+        let pts = [ new Point(x,y), new Point(x,y+rsv*h) ];
+        x += step;
+        for (let i = 0; i < klen; ++i) {
+            const jag = i < jlen ? this.jags[i] : this.jags[klen-i-1];
+            const fr = rsv + (jag * this.intens * (1 - rsv));
+            pts.push(new Point(x, y + h * fr));
+            x += step;
+            pts.push(new Point(x, y + h * rsv));
+            x += step;
+        }
+        pts.push(new Point(x-step, y));
+        gfx.draw_poly(pts, 0, 0, 0, 1, this.fg, this.fg);
+    }
+};
+
+// --------------------------------------------------------------------
 class ID_Sine extends ID_Input {
     constructor(period) {
         super();
@@ -133,12 +171,14 @@ class ID_Sine extends ID_Input {
 
 // --------------------------------------------------------------------
 class Game {
-    constructor(gfx, w, h, input, output) {
+    constructor(gfx) {
         this.gfx = gfx;
         this.stopping = false;
-        this.new_id(0, 0);
+        this.new_id();
     }
-    new_id(input_type, output_type) {
+    new_id() {
+        const input_type = el("sel_input").selectedIndex;
+        const output_type = el("sel_output").selectedIndex;
         const input = Game.new_input(input_type);
         const output = Game.new_output(output_type);
         this.id = input && output ? new ID(input, output) : null;
@@ -151,8 +191,13 @@ class Game {
     }
     static new_output(type) {
         switch (type) {
-        case 0: return new ID_RectMeter(config.color_meter_fg, config.color_meter_bg);
-        case 1: return new ID_WidenMeter(config.color_meter_fg, config.color_meter_bg);
+        case 0:
+            return new ID_RectMeter(config.color_meter_fg, config.color_meter_bg);
+        case 1:
+            return new ID_WidenMeter(config.color_meter_fg, config.color_meter_bg);
+        case 2:
+            const jags = el("jags").valueAsNumber;
+            return new ID_FireMeter(jags, config.color_meter_fg, config.color_meter_bg);
         }
         return null;
     }
@@ -179,7 +224,8 @@ class Game {
     }
     draw() {
         this.gfx.clear(config.color_bg);
-        this.id.draw(this.gfx, 40, 80, 200, 60);
+        const canvas = this.gfx.canvas_dims();
+        this.id.draw(this.gfx, 0, 0, canvas.w, canvas.h);
     }
     event_mouse(event, x, y) {
         if (event == Game.MOUSE_DOWN) {
@@ -188,9 +234,10 @@ class Game {
     }
     static _event_io_changed() {
         if (_game != null) { _game.stop(); }
-        const input = el("sel_input").selectedIndex;
-        const output = el("sel_output").selectedIndex;
-        _game.new_id(input, output);
+        _game.new_id();
+        const fire_disp = (el("sel_output").selectedIndex == 2) ? "block" : "none";
+        el("jags_hdr").style.display = fire_disp;
+        el("jags").style.display = fire_disp;
     }
 
     static _event_mousedown(e) { if (_game != null) _game.event_mouse(Game.MOUSE_DOWN, e.offsetX, e.offsetY); }
@@ -226,7 +273,7 @@ function main() {
     munge_config();
     const canvas = canvas_to_window();
     const gfx = new Graphics(canvas.getContext("2d"));
-    _game = new Game(gfx, 19, 19);
+    _game = new Game(gfx);
     _game.resize(canvas.width, canvas.height);
     window.addEventListener('resize', canvas_resize, false);
     document.addEventListener('mousedown', Game._event_mousedown);
