@@ -76,9 +76,8 @@ class ID_Input { // interface
 
 // --------------------------------------------------------------------
 class ID_Output { // interface
-    constructor() {
-    }
-    set_intensity(intens) { pure(); }
+    constructor() { this.intens = 0; }
+    set_intensity(intens) { this.intens = intens; }
     draw(gfx, x, y, w, h) { pure(); }
 };
 
@@ -88,10 +87,6 @@ class ID_RectMeter extends ID_Output {
         super();
         this.fg = fg;
         this.bg = bg;
-        this.set_intensity(0);
-    }
-    set_intensity(intens) {
-        this.intens = intens;
     }
     draw(gfx, x, y, w, h) {
         gfx.draw_rect(x, y, w, h, this.bg);
@@ -106,10 +101,6 @@ class ID_WidenMeter extends ID_Output {
         super();
         this.fg = fg;
         this.bg = bg;
-        this.set_intensity(0);
-    }
-    set_intensity(intens) {
-        this.intens = intens;
     }
     draw(gfx, x, y, w, h) {
         gfx.draw_rect(x, y, w, h, this.bg);
@@ -128,10 +119,6 @@ class ID_FireMeter extends ID_Output {
             this.jags.push(randu(1000) / 1000);
         this.fg = fg;
         this.bg = bg;
-        this.set_intensity(0);
-    }
-    set_intensity(intens) {
-        this.intens = intens;
     }
     draw(gfx, x, y, w, h) {
         gfx.draw_rect(x, y, w, h, this.bg);
@@ -279,6 +266,7 @@ function main() {
     document.addEventListener('mousedown', Game._event_mousedown);
     document.addEventListener('mouseup', Game._event_mouseup);
     document.addEventListener('mousemove', Game._event_mousemove);
+    Game._event_io_changed();
     run_game();
 }
 
