@@ -27,6 +27,10 @@
    </select>
   </td>
   <td>
+    <input type="checkbox" id="bgcolor" name="bgcolor" value="1" onchange="Game._event_io_changed()">
+    <label for="bgcolor"> Backgnd <br> color </label>
+  </td>
+  <td>
    <input type="number" id="jags" value="7" size="5" onchange="Game._event_io_changed()" style="display:none"/> <span id="jags_hdr">jags</span>
    <input type="number" id="num_pcircles" value="1" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="pcircles_hdr">circles</span>
   </td>
@@ -43,19 +47,17 @@ var _game = null;
 
 var config = {
     sine_period            : 3500,
-	off_color_r            : 24,
-	off_color_g            : 24,
-	off_color_b            : 24,
+    off_color_r            : 24,
+    off_color_g            : 24,
+    off_color_b            : 24,
 
-	pc_min_radius          : 40,
-	pc_max_radius          : 200,
+    pc_min_radius          : 40,
+    pc_max_radius          : 200,
 
     color_bg               : "002050",
     color_black            : "000000",
-    //color_grid             : "f00000",
-    color_meter_fg         : "a05010",
-    color_meter_bg         : "000000",
-    color_pcircles_bg      : "a05010",
+    //color_grid             : "f00000", // uncomment to draw a grid
+    color_meter            : "a05010",
 };
 
 // --------------------------------------------------------------------
@@ -93,67 +95,74 @@ class ID_Output { // interface
 
 // --------------------------------------------------------------------
 class ID_RectMeter extends ID_Output {
-    constructor(fg, bg) {
+    constructor(color) {
         super();
-        this.fg = fg;
-        this.bg = bg;
+        this.color = color;
     }
     draw(gfx, x, y, w, h) {
-        gfx.draw_rect(x, y, w, h, this.bg);
         let wa = w * this.intens;
-        gfx.draw_rect(x, y, wa, h, this.fg);
+        gfx.draw_rect(x, y, wa, h, this.color);
+    }
+};
+
+// --------------------------------------------------------------------
+class IntenseColor {
+    constructor() {
+    }
+    color(intens) {
+        const mf = (intens < .5) ? intens * 2 : 1 - ((intens - .5) * 2);
+        let r = Math.floor(256 * mf);
+        if (r > 256) r = 255;
+        const g = 255-r;
+        const b = g;
+        return Color.new_rgb(r,g,b);
     }
 };
 
 // --------------------------------------------------------------------
 class ID_PCirclesCircle {
-	constructor() {
-		this.min_radius = /*config.pc_min_radius*/0 + randu((((.7))) /*WTF is this???*/ * (config.pc_max_radius - config.pc_min_radius));
-		this.max_radius = this.min_radius + randu(config.pc_max_radius - this.min_radius);
-		this.color = Color.random(config.off_color_r, config.off_color_g, config.off_color_b);
-		this.placed = false;
-	}
+    constructor() {
+        this.min_radius = /*config.pc_min_radius*/0 + randu((((.7))) /*WTF is this???*/ * (config.pc_max_radius - config.pc_min_radius));
+        this.max_radius = this.min_radius + randu(config.pc_max_radius - this.min_radius);
+        this.color = Color.random(config.off_color_r, config.off_color_g, config.off_color_b);
+        this.placed = false;
+    }
     draw(gfx, x, y, w, h, intens) {
-		if (!this.placed) {
-			this.x = config.pc_max_radius + randu(w - 2*config.pc_max_radius);
-			this.y = config.pc_max_radius + randu(h - 2*config.pc_max_radius);
-			this.placed = true;
-		}
-		const radius = config.pc_min_radius + intens * (this.max_radius - this.min_radius);
-		gfx.draw_circle(this.x, this.y, radius, this.color);
-	}
+        if (!this.placed) {
+            this.x = config.pc_max_radius + randu(w - 2*config.pc_max_radius);
+            this.y = config.pc_max_radius + randu(h - 2*config.pc_max_radius);
+            this.placed = true;
+        }
+        const radius = config.pc_min_radius + intens * (this.max_radius - this.min_radius);
+        gfx.draw_circle(this.x, this.y, radius, this.color);
+    }
 };
 
 class ID_PCircles extends ID_Output {
-    constructor(bg, num_circles = 1) {
-		super();
-		this.bg = bg;
-		this.circles = [];
-		for (let cx = 0; cx < num_circles; ++cx) {
-			const circle = new ID_PCirclesCircle();
-			this.circles.push(circle);
-		}
-	}
+    constructor(num_circles = 1) {
+        super();
+        this.circles = [];
+        for (let cx = 0; cx < num_circles; ++cx) {
+            const circle = new ID_PCirclesCircle();
+            this.circles.push(circle);
+        }
+    }
     draw(gfx, x, y, w, h) {
-        gfx.draw_rect(x, y, w, h, this.bg);
-		for (const circle of this.circles) {
-			circle.draw(gfx, x, y, w, h, this.intens);
-		}
-	}
+        for (const circle of this.circles) {
+            circle.draw(gfx, x, y, w, h, this.intens);
+        }
+    }
 };
 
 // --------------------------------------------------------------------
 class ID_WidenMeter extends ID_Output {
-    constructor(fg, bg) {
+    constructor(color) {
         super();
-        this.fg = fg;
-        this.bg = bg;
+        this.color = color;
     }
     draw(gfx, x, y, w, h) {
-        gfx.draw_rect(x, y, w, h, this.bg);
         let wa = w * this.intens / 2;
-        ///gfx.draw_rect(x + wa, y, 2*wa, h, this.fg);
-        gfx.draw_rect(x + w/2 - wa, y, 2*wa, h, this.fg);
+        gfx.draw_rect(x + w/2 - wa, y, 2*wa, h, this.color);
     }
 };
 
@@ -164,11 +173,9 @@ class ID_FireMeter extends ID_Output {
         this.jags = [];
         while (this.jags.length < jags/2)
             this.jags.push(randu(1000) / 1000);
-        this.bg = config.color_meter_bg;
-        this.fg = Color.random();
+        this.color = Color.random();
     }
     draw(gfx, x, y, w, h) {
-        gfx.draw_rect(x, y, w, h, this.bg);
         this.draw2(gfx, x, y, w, h, false);
         this.draw2(gfx, x, y, w, h, true);
     }
@@ -188,7 +195,7 @@ class ID_FireMeter extends ID_Output {
             x += step;
         }
         pts.push(new Point(x-step, yy(y,h,inv)));
-        gfx.draw_poly(pts, 0, 0, 0, 1, this.fg, this.fg);
+        gfx.draw_poly(pts, 0, 0, 0, 1, this.color, this.color);
     }
 };
 
@@ -219,6 +226,7 @@ class Game {
         this.new_id();
     }
     new_id() {
+        this.bgcolor = el("bgcolor").checked ? new IntenseColor() : null;
         const input_type = el("sel_input").selectedIndex;
         const output_type = el("sel_output").selectedIndex;
         const input = Game.new_input(input_type);
@@ -233,16 +241,16 @@ class Game {
     }
     static new_output(type) {
         switch (type) {
-        case 0:
-            return new ID_RectMeter(config.color_meter_fg, config.color_meter_bg);
-        case 1:
-            return new ID_WidenMeter(config.color_meter_fg, config.color_meter_bg);
-        case 2:
+        case 0: // rect
+            return new ID_RectMeter(config.color_meter);
+        case 1: // widen
+            return new ID_WidenMeter(config.color_meter);
+        case 2: // fire
             const jags = el("jags").valueAsNumber;
             return new ID_FireMeter(jags);
-		case 3:
+        case 3: // pcircles
             const num_pcircles = el("num_pcircles").valueAsNumber;
-			return new ID_PCircles(config.color_pcircles_bg, num_pcircles);
+            return new ID_PCircles(num_pcircles);
         }
         return null;
     }
@@ -268,13 +276,14 @@ class Game {
         }
     }
     draw() {
-        this.gfx.clear(config.color_bg);
+        const color = (this.bgcolor == null) ? config.color_bg : this.bgcolor.color(this.id.input.get_intensity());
+        this.gfx.clear(color);
         const canvas = this.gfx.canvas_dims();
         this.id.draw(this.gfx, 0, 0, canvas.w, canvas.h);
-		if (config.color_grid) {
-			for (let x=0; x<canvas.w; x+=100) { this.gfx.draw_rect(x,0,1,canvas.h, config.color_grid); }
-			for (let y=0; y<canvas.h; y+=100) { this.gfx.draw_rect(0,y,canvas.w,1, config.color_grid); }
-		}
+        if (config.color_grid) {
+            for (let x=0; x<canvas.w; x+=100) { this.gfx.draw_rect(x,0,1,canvas.h, config.color_grid); }
+            for (let y=0; y<canvas.h; y+=100) { this.gfx.draw_rect(0,y,canvas.w,1, config.color_grid); }
+        }
     }
     event_mouse(event, x, y) {
         if (event == Game.MOUSE_DOWN) {
@@ -284,11 +293,11 @@ class Game {
     static _event_io_changed() {
         if (_game != null) { _game.stop(); }
         _game.new_id();
-		const ox = el("sel_output").selectedIndex;
+        const ox = el("sel_output").selectedIndex;
         el("jags_hdr")    .style.display = (ox == 2) ? "block" : "none";
         el("jags")        .style.display = (ox == 2) ? "block" : "none";
-		el("pcircles_hdr").style.display = (ox == 3) ? "block" : "none";
-		el("num_pcircles").style.display = (ox == 3) ? "block" : "none";
+        el("pcircles_hdr").style.display = (ox == 3) ? "block" : "none";
+        el("num_pcircles").style.display = (ox == 3) ? "block" : "none";
     }
 
     static _event_mousedown(e) { if (_game != null) _game.event_mouse(Game.MOUSE_DOWN, e.offsetX, e.offsetY); }
