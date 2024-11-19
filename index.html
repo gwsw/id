@@ -11,8 +11,6 @@
  <tr>
   <td> Input </td>
   <td> Output </td>
-  <td id="jags_hdr" style="display:none"> Jags </td>
-  <td id="pcircles_hdr" style="display:none"> Circles </td>
  </tr>
  <tr>
   <td>
@@ -29,10 +27,8 @@
    </select>
   </td>
   <td>
-   <input type="number" id="jags" value="7" size="5" onchange="Game._event_io_changed()" style="display:none"/>
-  </td>
-  <td>
-   <input type="number" id="num_pcircles" value="1" size="5" onchange="Game._event_io_changed()" style="display:none"/>
+   <input type="number" id="jags" value="7" size="5" onchange="Game._event_io_changed()" style="display:none"/> <span id="jags_hdr">jags</span>
+   <input type="number" id="num_pcircles" value="1" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="pcircles_hdr">circles</span>
   </td>
  </tr>
 </table>
@@ -309,7 +305,7 @@ function canvas_to_window() {
     const canvas = el("canvas");
     const s = 20;
     canvas.width = window.innerWidth - s;
-    canvas.height = window.innerHeight - el("ctls").offsetHeight - s;
+    canvas.height = window.innerHeight - 3* el("ctls").offsetHeight;
     return canvas;
 }
 
