@@ -16,6 +16,7 @@
   <td>
    <select name="input" id="sel_input" onchange="Game._event_io_changed()">
     <option value="sine"> Sine wave </option>
+    <option value="audio"> Audio input </option>
    </select>
   </td>
   <td>
@@ -46,7 +47,8 @@
 var _game = null;
 
 var config = {
-    sine_period            : 3500,
+    sine_period            : 5500,
+    audio_samp_avg         : 200,
     off_color_r            : 24,
     off_color_g            : 24,
     off_color_b            : 24,
@@ -219,6 +221,40 @@ class ID_Sine extends ID_Input {
 };
 
 // --------------------------------------------------------------------
+let the_AudioIn = null;
+
+class ID_AudioIn extends ID_Input {
+    constructor(avg_len) {
+        super();
+        this.avg_x = 0;
+        this.avg = [];
+        while (this.avg.length < avg_len) {
+            this.avg.push(0);
+        }
+        this.audio = audio_context(ID_AudioIn._process_audio);
+        the_AudioIn = this;
+    }
+    process_audio(e) {
+        const tm = now();
+        const chan = 0;
+        const samp = e.inputBuffer.getChannelData(chan);
+        for (let b = 0; b < samp.length; b++) {
+            this.avg[this.avg_x] = samp[b];
+            if (++this.avg_x >= this.avg.length) this.avg_x = 0;
+        }
+    }
+    get_intensity() {
+        let total = 0;
+        for (const val of this.avg) {
+            total += val;
+        }
+        return (this.avg.length == 0) ? 0 : total / this.avg.length;
+    }
+
+    static _process_audio(e) { the_AudioIn.process_audio(e); }
+};
+
+// --------------------------------------------------------------------
 class Game {
     constructor(gfx) {
         this.gfx = gfx;
@@ -235,7 +271,8 @@ class Game {
     }
     static new_input(type) {
         switch (type) {
-        case 0: return new ID_Sine(5500);
+        case 0: return new ID_Sine(config.sine_period);
+        case 1: return new ID_AudioIn(config.audio_samp_avg);
         }
         return null;
     }
