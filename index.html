@@ -64,39 +64,40 @@ var config = {
     color_black            : "000000",
     //color_grid             : "f00000", // uncomment to draw a grid
     color_meter            : "a05010",
-};
+}
 
 // --------------------------------------------------------------------
+// Connection between ID_Input and ID_Output.
 class ID { // interface
     constructor(input, output) {
         this.input = input;
         this.output = output;
-        this.set_intensity(0);
+        this.#set_intensity(0);
     }
-    set_intensity(intens) {
+    #set_intensity(intens) {
         this.intens = intens;
     }
     update() {
-        this.set_intensity(this.input.get_intensity());
+        this.#set_intensity(this.input.get_intensity());
     }
     draw(gfx, x, y, w, h) {
-        ///this.output.set_intensity(this.intens);
         this.output.draw(gfx, x, y, w, h, this.intens);
     }
-};
+}
 
 // --------------------------------------------------------------------
+// Intensity source.
 class ID_Input { // interface
     constructor() { }
     get_intensity() { pure(); }
-};
+}
 
 // --------------------------------------------------------------------
+// Intensity sink; draws intensity to screen.
 class ID_Output { // interface
-    constructor() { this.intens = 0; }
-    set_intensity(intens) { this.intens = intens; }
+    constructor() { }
     draw(gfx, x, y, w, h, intens) { pure(); }
-};
+}
 
 // --------------------------------------------------------------------
 class ID_RectMeter extends ID_Output {
@@ -108,7 +109,7 @@ class ID_RectMeter extends ID_Output {
         let wa = w * intens;
         gfx.draw_rect(x, y, wa, h, this.color);
     }
-};
+}
 
 // --------------------------------------------------------------------
 class IntenseColor {
@@ -122,7 +123,7 @@ class IntenseColor {
         const b = g;
         return Color.new_rgb(r,g,b);
     }
-};
+}
 
 // --------------------------------------------------------------------
 class ID_PCirclesCircle {
@@ -141,7 +142,7 @@ class ID_PCirclesCircle {
         const radius = config.pc_min_radius + intens * (this.max_radius - this.min_radius);
         gfx.draw_circle(this.x, this.y, radius, this.color);
     }
-};
+}
 
 class ID_PCircles extends ID_Output {
     constructor(num_circles = 1) {
@@ -157,7 +158,7 @@ class ID_PCircles extends ID_Output {
             circle.draw(gfx, x, y, w, h, intens);
         }
     }
-};
+}
 
 // --------------------------------------------------------------------
 class ID_WidenMeter extends ID_Output {
@@ -169,7 +170,7 @@ class ID_WidenMeter extends ID_Output {
         let wa = w * intens / 2;
         gfx.draw_rect(x + w/2 - wa, y, 2*wa, h, this.color);
     }
-};
+}
 
 // --------------------------------------------------------------------
 class ID_FireMeter extends ID_Output {
@@ -181,10 +182,10 @@ class ID_FireMeter extends ID_Output {
         this.color = Color.random();
     }
     draw(gfx, x, y, w, h, intens) {
-        this.draw2(gfx, x, y, w, h, intens, false);
-        this.draw2(gfx, x, y, w, h, intens, true);
+        this.#draw2(gfx, x, y, w, h, intens, false);
+        this.#draw2(gfx, x, y, w, h, intens, true);
     }
-    draw2(gfx, x, y, w, h, intens, inv) {
+    #draw2(gfx, x, y, w, h, intens, inv) {
         const rsv = 0.06;
         const jlen = this.jags.length;
         const klen = 2*jlen-1;
@@ -202,40 +203,39 @@ class ID_FireMeter extends ID_Output {
         pts.push(new Point(x-step, yy(y,h,inv)));
         gfx.draw_poly(pts, 0, 0, 0, 1, this.color, this.color);
     }
-};
+}
+function yy(y,h,inv) { return inv ? h-y : y; }
 
 // --------------------------------------------------------------------
 class ID_StarMeter extends ID_Output {
-	constructor(arms, deep) {
-		super();
-		this.arms = arms;
-		this.deep = deep;
-		this.color = Color.random();
-	}
+    constructor(arms, deep) {
+        super();
+        this.arms = arms;
+        this.deep = deep;
+        this.color = Color.random();
+        this.stars = [];
+        this.stars.push
+    }
     draw(gfx, x, y, w, h, intens) {
-		const diam = Math.min(w, h);
-		const marg = diam * config.margin;
-		const cx = diam/2 + marg;
-		const cy = diam/2 + marg;
-		const oradius = (diam - 2*marg) / 2;
-		const iradius = oradius * this.deep;
-		const step = 2*Math.PI / this.arms;
-		let pts = [];
-		for (let i = 0; i < this.arms; ++i) {
-			const ang = i * step;
-			const x1 = cx + oradius * intens * Math.cos(ang);
-			const y1 = cy + oradius * intens * Math.sin(ang);
-			pts.push(new Point(x1, y1));
-			const x2 = cx + iradius * intens * Math.cos(ang + step/2);
-			const y2 = cy + iradius * intens * Math.sin(ang + step/2);
-			pts.push(new Point(x2, y2));
-		}
-		gfx.draw_poly(pts, x, y, 0, 1, this.color, this.color);
-	}
-};
-
-function yy(y,h,inv) {
-    return inv ? h-y : y;
+        const diam = Math.min(w, h);
+        const marg = diam * config.margin;
+        const cx = diam/2 + marg;
+        const cy = diam/2 + marg;
+        const oradius = (diam - 2*marg) / 2;
+        const iradius = oradius * this.deep;
+        const step = 2*Math.PI / this.arms;
+        let pts = [];
+        for (let i = 0; i < this.arms; ++i) {
+            const ang = i * step;
+            const x1 = cx + oradius * intens * Math.cos(ang);
+            const y1 = cy + oradius * intens * Math.sin(ang);
+            pts.push(new Point(x1, y1));
+            const x2 = cx + iradius * intens * Math.cos(ang + step/2);
+            const y2 = cy + iradius * intens * Math.sin(ang + step/2);
+            pts.push(new Point(x2, y2));
+        }
+        gfx.draw_poly(pts, x, y, 0, 1, this.color, this.color);
+    }
 }
 
 // --------------------------------------------------------------------
@@ -251,7 +251,7 @@ class ID_Sine extends ID_Input {
         if (intens < 0) intens = -intens;
         return intens;
     }
-};
+}
 
 // --------------------------------------------------------------------
 let the_AudioIn = null;
@@ -267,6 +267,13 @@ class ID_AudioIn extends ID_Input {
         this.audio = audio_context(ID_AudioIn._process_audio);
         the_AudioIn = this;
     }
+    get_intensity() {
+        let total = 0;
+        for (const val of this.avg) {
+            total += val;
+        }
+        return (this.avg.length == 0) ? 0 : total / this.avg.length;
+    }
     process_audio(e) {
         const tm = now();
         const chan = 0;
@@ -276,44 +283,37 @@ class ID_AudioIn extends ID_Input {
             if (++this.avg_x >= this.avg.length) this.avg_x = 0;
         }
     }
-    get_intensity() {
-        let total = 0;
-        for (const val of this.avg) {
-            total += val;
-        }
-        return (this.avg.length == 0) ? 0 : total / this.avg.length;
-    }
-
     static _process_audio(e) { the_AudioIn.process_audio(e); }
-};
+}
 
 // --------------------------------------------------------------------
 let the_mouse_move = null;
+
 class ID_MouseDrag extends ID_Input {
-	constructor() {
-		super();
-		this.intens = 0;
-		this.drag_factor = .004;
-		this.last_y = -1;
-		the_mouse_move = this;
-	}
-	get_intensity() {
-		return this.intens;
-	}
-	mouse_down(x, y) {
-		this.last_y = y;
-	}
-	mouse_up(x, y) {
-		this.last_y = -1;
-	}
-	mouse_move(x, y) {
-		if (this.last_y < 0) return;
-		const dy = this.last_y - y;
-		this.last_y = y;
-		this.intens += dy * this.drag_factor;
-		if (this.intens < 0) this.intens = 0;
-		if (this.intens > 1) this.intens = 1;
-	}
+    constructor() {
+        super();
+        this.intens = 0;
+        this.drag_factor = .004;
+        this.last_y = -1;
+        the_mouse_move = this;
+    }
+    get_intensity() {
+        return this.intens;
+    }
+    mouse_down(x, y) {
+        this.last_y = y;
+    }
+    mouse_up(x, y) {
+        this.last_y = -1;
+    }
+    mouse_move(x, y) {
+        if (this.last_y < 0) return;
+        const dy = this.last_y - y;
+        this.last_y = y;
+        this.intens += dy * this.drag_factor;
+        if (this.intens < 0) this.intens = 0;
+        if (this.intens > 1) this.intens = 1;
+    }
 }
 
 // --------------------------------------------------------------------
@@ -329,7 +329,7 @@ class Game {
         const output_type = el("sel_output").selectedIndex;
         const input = Game.new_input(input_type);
         const output = Game.new_output(output_type);
-        this.id = input && output ? new ID(input, output) : null;
+        this.id = (input && output) ? new ID(input, output) : null;
     }
     static new_input(type) {
         switch (type) {
@@ -352,20 +352,17 @@ class Game {
             const num_pcircles = el("num_pcircles").valueAsNumber;
             return new ID_PCircles(num_pcircles);
         case 4: // star
-			const num_stararms = el("num_stararms").valueAsNumber;
-			const deep = 0.2;
-			return new ID_StarMeter(num_stararms, deep);
+            const num_stararms = el("num_stararms").valueAsNumber;
+            const deep = 0.2;
+            return new ID_StarMeter(num_stararms, deep);
         }
         return null;
     }
     resize(width, height) {
-        const s = Math.min(width, height);
-        this.gfx.set_font_size(s*.040);
         this.draw();
     }
     run() {
-        const intens = this.id.input.get_intensity();
-        this.id.set_intensity(intens);
+        this.id.update();
         this.draw();
         if (this.stopping) {
             this.stopping = false;
@@ -390,13 +387,13 @@ class Game {
         }
     }
     event_mouse(event, x, y) {
-		if (the_mouse_move == null) return;
-		if (event == Game.MOUSE_DOWN) 
-			the_mouse_move.mouse_down(x, y);
-		else if (event == Game.MOUSE_UP)
-			the_mouse_move.mouse_up(x, y);
-		else if (event == Game.MOUSE_MOVE)
-			the_mouse_move.mouse_move(x, y);
+        if (the_mouse_move == null) return;
+        if (event == Game.MOUSE_DOWN) 
+            the_mouse_move.mouse_down(x, y);
+        else if (event == Game.MOUSE_UP)
+            the_mouse_move.mouse_up(x, y);
+        else if (event == Game.MOUSE_MOVE)
+            the_mouse_move.mouse_move(x, y);
     }
     static _event_io_changed() {
         if (_game != null) { _game.stop(); }
