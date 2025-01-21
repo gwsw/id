@@ -25,6 +25,7 @@
     <option value="widen"> Widen </option>
     <option value="fire"> Fire </option>
     <option value="pcircles"> Circles </option>
+    <option value="star"> Star </option>
    </select>
   </td>
   <td>
@@ -34,6 +35,7 @@
   <td>
    <input type="number" id="jags" value="7" size="5" onchange="Game._event_io_changed()" style="display:none"/> <span id="jags_hdr">jags</span>
    <input type="number" id="num_pcircles" value="1" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="pcircles_hdr">circles</span>
+   <input type="number" id="num_stararms" value="12" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="stararms_hdr">points</span>
   </td>
  </tr>
 </table>
@@ -49,6 +51,7 @@ var _game = null;
 var config = {
     sine_period            : 5500,
     audio_samp_avg         : 200,
+    margin                 : .05,
     off_color_r            : 24,
     off_color_g            : 24,
     off_color_b            : 24,
@@ -83,8 +86,7 @@ class ID { // interface
 
 // --------------------------------------------------------------------
 class ID_Input { // interface
-    constructor() {
-    }
+    constructor() { }
     get_intensity() { pure(); }
 };
 
@@ -201,6 +203,36 @@ class ID_FireMeter extends ID_Output {
     }
 };
 
+// --------------------------------------------------------------------
+class ID_StarMeter extends ID_Output {
+	constructor(arms, deep) {
+		super();
+		this.arms = arms;
+		this.deep = deep;
+		this.color = Color.random();
+	}
+    draw(gfx, x, y, w, h) {
+		const diam = Math.min(w, h);
+		const marg = diam * config.margin;
+		const cx = diam/2 + marg;
+		const cy = diam/2 + marg;
+		const oradius = (diam - 2*marg) / 2;
+		const iradius = oradius * this.deep;
+		const step = 2*Math.PI / this.arms;
+		let pts = [];
+		for (let i = 0; i < this.arms; ++i) {
+			const ang = i * step;
+			const x1 = cx + oradius * this.intens * Math.cos(ang);
+			const y1 = cy + oradius * this.intens * Math.sin(ang);
+			pts.push(new Point(x1, y1));
+			const x2 = cx + iradius * this.intens * Math.cos(ang + step/2);
+			const y2 = cy + iradius * this.intens * Math.sin(ang + step/2);
+			pts.push(new Point(x2, y2));
+		}
+		gfx.draw_poly(pts, x, y, 0, 1, this.color, this.color);
+	}
+};
+
 function yy(y,h,inv) {
     return inv ? h-y : y;
 }
@@ -288,6 +320,10 @@ class Game {
         case 3: // pcircles
             const num_pcircles = el("num_pcircles").valueAsNumber;
             return new ID_PCircles(num_pcircles);
+        case 4: // star
+			const num_stararms = el("num_stararms").valueAsNumber;
+			const deep = 0.2;
+			return new ID_StarMeter(num_stararms, deep);
         }
         return null;
     }
@@ -335,6 +371,8 @@ class Game {
         el("jags")        .style.display = (ox == 2) ? "block" : "none";
         el("pcircles_hdr").style.display = (ox == 3) ? "block" : "none";
         el("num_pcircles").style.display = (ox == 3) ? "block" : "none";
+        el("stararms_hdr").style.display = (ox == 4) ? "block" : "none";
+        el("num_stararms").style.display = (ox == 4) ? "block" : "none";
     }
 
     static _event_mousedown(e) { if (_game != null) _game.event_mouse(Game.MOUSE_DOWN, e.offsetX, e.offsetY); }
