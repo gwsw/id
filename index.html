@@ -80,8 +80,8 @@ class ID { // interface
         this.set_intensity(this.input.get_intensity());
     }
     draw(gfx, x, y, w, h) {
-        this.output.set_intensity(this.intens);
-        this.output.draw(gfx, x, y, w, h);
+        ///this.output.set_intensity(this.intens);
+        this.output.draw(gfx, x, y, w, h, this.intens);
     }
 };
 
@@ -95,7 +95,7 @@ class ID_Input { // interface
 class ID_Output { // interface
     constructor() { this.intens = 0; }
     set_intensity(intens) { this.intens = intens; }
-    draw(gfx, x, y, w, h) { pure(); }
+    draw(gfx, x, y, w, h, intens) { pure(); }
 };
 
 // --------------------------------------------------------------------
@@ -104,8 +104,8 @@ class ID_RectMeter extends ID_Output {
         super();
         this.color = color;
     }
-    draw(gfx, x, y, w, h) {
-        let wa = w * this.intens;
+    draw(gfx, x, y, w, h, intens) {
+        let wa = w * intens;
         gfx.draw_rect(x, y, wa, h, this.color);
     }
 };
@@ -152,9 +152,9 @@ class ID_PCircles extends ID_Output {
             this.circles.push(circle);
         }
     }
-    draw(gfx, x, y, w, h) {
+    draw(gfx, x, y, w, h, intens) {
         for (const circle of this.circles) {
-            circle.draw(gfx, x, y, w, h, this.intens);
+            circle.draw(gfx, x, y, w, h, intens);
         }
     }
 };
@@ -165,8 +165,8 @@ class ID_WidenMeter extends ID_Output {
         super();
         this.color = color;
     }
-    draw(gfx, x, y, w, h) {
-        let wa = w * this.intens / 2;
+    draw(gfx, x, y, w, h, intens) {
+        let wa = w * intens / 2;
         gfx.draw_rect(x + w/2 - wa, y, 2*wa, h, this.color);
     }
 };
@@ -180,11 +180,11 @@ class ID_FireMeter extends ID_Output {
             this.jags.push(randu(1000) / 1000);
         this.color = Color.random();
     }
-    draw(gfx, x, y, w, h) {
-        this.draw2(gfx, x, y, w, h, false);
-        this.draw2(gfx, x, y, w, h, true);
+    draw(gfx, x, y, w, h, intens) {
+        this.draw2(gfx, x, y, w, h, intens, false);
+        this.draw2(gfx, x, y, w, h, intens, true);
     }
-    draw2(gfx, x, y, w, h, inv) {
+    draw2(gfx, x, y, w, h, intens, inv) {
         const rsv = 0.06;
         const jlen = this.jags.length;
         const klen = 2*jlen-1;
@@ -193,7 +193,7 @@ class ID_FireMeter extends ID_Output {
         x += step;
         for (let i = 0; i < klen; ++i) {
             const jag = i < jlen ? this.jags[i] : this.jags[klen-i-1];
-            const fr = rsv + (jag * this.intens * (1 - rsv));
+            const fr = rsv + (jag * intens * (1 - rsv));
             pts.push(new Point(x, yy(y+h*fr,h,inv)));
             x += step;
             pts.push(new Point(x, yy(y+h*rsv,h,inv)));
@@ -212,7 +212,7 @@ class ID_StarMeter extends ID_Output {
 		this.deep = deep;
 		this.color = Color.random();
 	}
-    draw(gfx, x, y, w, h) {
+    draw(gfx, x, y, w, h, intens) {
 		const diam = Math.min(w, h);
 		const marg = diam * config.margin;
 		const cx = diam/2 + marg;
@@ -223,11 +223,11 @@ class ID_StarMeter extends ID_Output {
 		let pts = [];
 		for (let i = 0; i < this.arms; ++i) {
 			const ang = i * step;
-			const x1 = cx + oradius * this.intens * Math.cos(ang);
-			const y1 = cy + oradius * this.intens * Math.sin(ang);
+			const x1 = cx + oradius * intens * Math.cos(ang);
+			const y1 = cy + oradius * intens * Math.sin(ang);
 			pts.push(new Point(x1, y1));
-			const x2 = cx + iradius * this.intens * Math.cos(ang + step/2);
-			const y2 = cy + iradius * this.intens * Math.sin(ang + step/2);
+			const x2 = cx + iradius * intens * Math.cos(ang + step/2);
+			const y2 = cy + iradius * intens * Math.sin(ang + step/2);
 			pts.push(new Point(x2, y2));
 		}
 		gfx.draw_poly(pts, x, y, 0, 1, this.color, this.color);
