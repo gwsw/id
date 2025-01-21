@@ -7,40 +7,47 @@
 <body onload="main()">
 <canvas id="canvas" width="1" height="1" style="font-family:Arial"></canvas>
 <br>
-<table id="ctls">
- <tr>
-  <td> Input </td>
-  <td> Output </td>
- </tr>
- <tr>
-  <td>
-   <select name="input" id="sel_input" onchange="Game._event_io_changed()">
-    <option value="sine"> Sine wave </option>
-    <option value="audio"> Audio input </option>
-    <option value="mousedrag"> Mouse/touch input </option>
-   </select>
-  </td>
-  <td>
-   <select name="output" id="sel_output" onchange="Game._event_io_changed()">
-    <option value="rect"> Rect </option>
-    <option value="widen"> Widen </option>
-    <option value="fire"> Fire </option>
-    <option value="pcircles"> Circles </option>
-    <option value="star"> Star </option>
-   </select>
-  </td>
-  <td>
-    <input type="checkbox" id="bgcolor" name="bgcolor" value="1" onchange="Game._event_io_changed()">
-    <label for="bgcolor"> Backgnd <br> color </label>
-  </td>
-  <td>
-   <input type="number" id="jags" value="7" size="5" onchange="Game._event_io_changed()" style="display:none"/> <span id="jags_hdr">jags</span>
-   <input type="number" id="num_pcircles" value="1" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="pcircles_hdr">circles</span>
-   <input type="number" id="num_stararms" value="12" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="stararms_hdr">points</span>
-   <input type="number" id="num_stars" value="1" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="num_stars_hdr">stars</span>
-  </td>
- </tr>
-</table>
+<div id="panel">
+ <table id="ctls">
+  <tr>
+   <td> Input </td>
+   <td> Output </td>
+  </tr>
+  <tr>
+   <td>
+    <select name="input" id="sel_input" onchange="Game._event_io_changed()">
+     <option value="sine"> Sine wave </option>
+     <option value="audio"> Microphone </option>
+     <option value="mousedrag"> Mouse </option>
+    </select>
+   </td>
+   <td>
+    <select name="output" id="sel_output" onchange="Game._event_io_changed()">
+     <option value="rect"> Rect </option>
+     <option value="widen"> Widen </option>
+     <option value="fire"> Fire </option>
+     <option value="pcircles"> Circles </option>
+     <option value="star"> Star </option>
+    </select>
+   </td>
+   <td>
+    <input type="number" id="jags" value="7" size="5" onchange="Game._event_io_changed()" style="display:none"/> <span id="jags_hdr">jags</span>
+    <input type="number" id="num_pcircles" value="1" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="pcircles_hdr">circles</span>
+    <input type="number" id="num_stararms" value="12" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="stararms_hdr">points</span>
+    <input type="number" id="num_stars" value="1" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="num_stars_hdr">stars</span>
+   </td>
+   <td>
+     <input type="checkbox" id="bgcolor" name="bgcolor" value="1" onchange="Game._event_io_changed()">
+     <label for="bgcolor"> Backgnd <br> color </label>
+   </td>
+  </tr>
+  <tr>
+  </tr>
+ </table>
+</div>
+<div>
+ <input type="button" value="X" onclick="close_panel()">
+</div>
 
 <script src="../jlib/gfx.js"></script>
 
@@ -73,7 +80,7 @@ class ID { // interface
     constructor(input, output) {
         this.input = input;
         this.output = output;
-        this.#set_intensity(0);
+        this.#set_intensity(0); ///
     }
     #set_intensity(intens) {
         this.intens = intens;
@@ -308,7 +315,7 @@ let the_mouse_move = null;
 class ID_MouseDrag extends ID_Input {
     constructor() {
         super();
-        this.intens = 0;
+        this.intens = 1;
         this.drag_factor = .004;
         this.last_y = -1;
         the_mouse_move = this;
@@ -436,6 +443,11 @@ class Game {
 }; // class Game
 
 // --------------------------------------------------------------------
+function close_panel() {
+    const panel = el("panel");
+    panel.style.display = (panel.style.display == "none") ? "block" : "none";
+}
+
 function canvas_to_window() {
     const canvas = el("canvas");
     const s = 20;
