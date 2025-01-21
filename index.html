@@ -17,6 +17,7 @@
    <select name="input" id="sel_input" onchange="Game._event_io_changed()">
     <option value="sine"> Sine wave </option>
     <option value="audio"> Audio input </option>
+    <option value="mousedrag"> Mouse/touch input </option>
    </select>
   </td>
   <td>
@@ -287,6 +288,35 @@ class ID_AudioIn extends ID_Input {
 };
 
 // --------------------------------------------------------------------
+let the_mouse_move = null;
+class ID_MouseDrag extends ID_Input {
+	constructor() {
+		super();
+		this.intens = 0;
+		this.drag_factor = .004;
+		this.last_y = -1;
+		the_mouse_move = this;
+	}
+	get_intensity() {
+		return this.intens;
+	}
+	mouse_down(x, y) {
+		this.last_y = y;
+	}
+	mouse_up(x, y) {
+		this.last_y = -1;
+	}
+	mouse_move(x, y) {
+		if (this.last_y < 0) return;
+		const dy = this.last_y - y;
+		this.last_y = y;
+		this.intens += dy * this.drag_factor;
+		if (this.intens < 0) this.intens = 0;
+		if (this.intens > 1) this.intens = 1;
+	}
+}
+
+// --------------------------------------------------------------------
 class Game {
     constructor(gfx) {
         this.gfx = gfx;
@@ -305,6 +335,7 @@ class Game {
         switch (type) {
         case 0: return new ID_Sine(config.sine_period);
         case 1: return new ID_AudioIn(config.audio_samp_avg);
+        case 2: return new ID_MouseDrag();
         }
         return null;
     }
@@ -359,9 +390,13 @@ class Game {
         }
     }
     event_mouse(event, x, y) {
-        if (event == Game.MOUSE_DOWN) {
-            ///this.draw();
-        }
+		if (the_mouse_move == null) return;
+		if (event == Game.MOUSE_DOWN) 
+			the_mouse_move.mouse_down(x, y);
+		else if (event == Game.MOUSE_UP)
+			the_mouse_move.mouse_up(x, y);
+		else if (event == Game.MOUSE_MOVE)
+			the_mouse_move.mouse_move(x, y);
     }
     static _event_io_changed() {
         if (_game != null) { _game.stop(); }
