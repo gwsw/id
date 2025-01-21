@@ -37,6 +37,7 @@
    <input type="number" id="jags" value="7" size="5" onchange="Game._event_io_changed()" style="display:none"/> <span id="jags_hdr">jags</span>
    <input type="number" id="num_pcircles" value="1" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="pcircles_hdr">circles</span>
    <input type="number" id="num_stararms" value="12" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="stararms_hdr">points</span>
+   <input type="number" id="num_stars" value="1" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="num_stars_hdr">stars</span>
   </td>
  </tr>
 </table>
@@ -207,26 +208,24 @@ class ID_FireMeter extends ID_Output {
 function yy(y,h,inv) { return inv ? h-y : y; }
 
 // --------------------------------------------------------------------
-class ID_StarMeter extends ID_Output {
-    constructor(arms, deep) {
-        super();
+class ID_StarMeterStar {
+    constructor(arms, deep, rot) {
         this.arms = arms;
         this.deep = deep;
+        this.rot = rot;
         this.color = Color.random();
-        this.stars = [];
-        this.stars.push
     }
     draw(gfx, x, y, w, h, intens) {
-        const diam = Math.min(w, h);
-        const marg = diam * config.margin;
-        const cx = diam/2 + marg;
-        const cy = diam/2 + marg;
-        const oradius = (diam - 2*marg) / 2;
+        const cx = w / 2;
+        const cy = h / 2;
+        const size = Math.min(w, h); 
+        const marg = size * config.margin;
+        const oradius = size/2 - marg;
         const iradius = oradius * this.deep;
         const step = 2*Math.PI / this.arms;
         let pts = [];
         for (let i = 0; i < this.arms; ++i) {
-            const ang = i * step;
+            const ang = i * step + this.rot;
             const x1 = cx + oradius * intens * Math.cos(ang);
             const y1 = cy + oradius * intens * Math.sin(ang);
             pts.push(new Point(x1, y1));
@@ -235,6 +234,23 @@ class ID_StarMeter extends ID_Output {
             pts.push(new Point(x2, y2));
         }
         gfx.draw_poly(pts, x, y, 0, 1, this.color, this.color);
+    }
+}
+
+class ID_StarMeter extends ID_Output {
+    constructor(num_stars, arms, deep) {
+        super();
+        this.stars = [];
+        for (let i = 0; i < num_stars; ++i) {
+            this.stars.push(new ID_StarMeterStar(arms, deep, i * 2*Math.PI / (num_stars*arms)));
+        }
+    }
+    draw(gfx, x, y, w, h, intens) {
+        let diam = Math.min(w, h) - 2 * w * config.margin;
+        for (const star of this.stars) {
+            star.draw(gfx, x, y, w, h, intens);
+            diam *= .9;
+        }
     }
 }
 
@@ -353,8 +369,9 @@ class Game {
             return new ID_PCircles(num_pcircles);
         case 4: // star
             const num_stararms = el("num_stararms").valueAsNumber;
+            const num_stars = el("num_stars").valueAsNumber;
             const deep = 0.2;
-            return new ID_StarMeter(num_stararms, deep);
+            return new ID_StarMeter(num_stars, num_stararms, deep);
         }
         return null;
     }
@@ -405,6 +422,8 @@ class Game {
         el("num_pcircles").style.display = (ox == 3) ? "block" : "none";
         el("stararms_hdr").style.display = (ox == 4) ? "block" : "none";
         el("num_stararms").style.display = (ox == 4) ? "block" : "none";
+        el("num_stars_hdr").style.display = (ox == 4) ? "block" : "none";
+        el("num_stars")   .style.display = (ox == 4) ? "block" : "none";
     }
 
     static _event_mousedown(e) { if (_game != null) _game.event_mouse(Game.MOUSE_DOWN, e.offsetX, e.offsetY); }
