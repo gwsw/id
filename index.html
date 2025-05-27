@@ -3,11 +3,15 @@
 <html>
 <head>
 <title>Intensity Mapper</title>
+<style>
+ table { border: 1px solid black; }
+ th,td { padding-top:.4em; padding-bottom:.4em; padding-left: 1em; padding-right: 1em; }
+</style>
 </head>
 <body onload="main()">
 <canvas id="canvas" width="1" height="1" style="font-family:Arial"></canvas>
 <br>
-<div id="panel">
+<div id="panel" style="position:absolute; bottom:0px">
  <table id="ctls">
   <tr>
    <td> Input </td>
@@ -32,11 +36,11 @@
     </select>
    </td>
    <td>
-    <input type="number" id="jags" value="7" size="5" onchange="Game._event_io_changed()" style="display:none"/> <span id="jags_hdr">jags</span>
-    <input type="number" id="num_pcircles" value="1" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="pcircles_hdr">circles</span>
-    <input type="number" id="num_chase" value="1" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="chase_hdr">chase circles</span>
-    <input type="number" id="num_stararms" value="12" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="stararms_hdr">points</span>
-    <input type="number" id="num_stars" value="1" size="5" onchange="Game._event_io_changed()" style="display:none"/><span id="num_stars_hdr">stars</span>
+    <input type="number" id="jags" value="7" min="1" max="99" onchange="Game._event_io_changed()" style="display:none"/> <span id="jags_hdr">jags</span>
+    <input type="number" id="num_pcircles" value="1" min="1" max="99" onchange="Game._event_io_changed()" style="display:none"/><span id="pcircles_hdr">circles</span>
+    <input type="number" id="num_chase" value="1" min="1" max="99" onchange="Game._event_io_changed()" style="display:none"/><span id="chase_hdr">chase circles</span>
+    <input type="number" id="num_stararms" value="12" min="1" max="99" onchange="Game._event_io_changed()" style="display:none"/><span id="stararms_hdr">points</span>
+    <input type="number" id="num_stars" value="1" min="1" max="99" onchange="Game._event_io_changed()" style="display:none"/><span id="num_stars_hdr">stars</span>
    </td>
    <td>
      <input type="checkbox" id="bgcolor" name="bgcolor" value="1" onchange="Game._event_io_changed()">
@@ -44,11 +48,20 @@
    </td>
   </tr>
   <tr>
+   <td>
+    <input type="button" id="close_btn" value="&#x2716;" onclick="close_panel()">
+   </td>
   </tr>
  </table>
 </div>
-<div>
- <input type="button" id="close_btn" value="&#10006;" onclick="close_panel()">
+<div id="open_btn" style="display:none; position:absolute; bottom:0px">
+ <table id="close_ctls">
+  <tr>
+   <td>
+    <input type="button" value="&#x2630;" onclick="close_panel()">
+   </td>
+  </tr>
+ </table>
 </div>
 
 <script src="../jlib/gfx.js"></script>
@@ -73,6 +86,7 @@ var config = {
     off_color_r            : 24,
     off_color_g            : 24,
     off_color_b            : 24,
+    def_amp                : 8,
 
     pc_min_radius          : 40,
     pc_max_radius          : 200,
@@ -332,6 +346,7 @@ class ID_AudioIn extends ID_Input {
             this.avg.push(0);
         }
         this.audio = audio_context(ID_AudioIn._process_audio);
+        this.set_amp(config.def_amp);
         the_AudioIn = this;
     }
     get_intensity() {
@@ -339,7 +354,9 @@ class ID_AudioIn extends ID_Input {
         for (const val of this.avg) {
             total += val;
         }
-        return (this.avg.length == 0) ? 0 : total / this.avg.length;
+        let val = (this.avg.length == 0) ? 0 : total * this.amp / this.avg.length;
+        if (val > 1) val = 1;
+        return val;
     }
     process_audio(e) {
         const tm = now();
@@ -350,6 +367,8 @@ class ID_AudioIn extends ID_Input {
             if (++this.avg_x >= this.avg.length) this.avg_x = 0;
         }
     }
+    get_amp() { return this.amp; }
+    set_amp(amp) { this.amp = amp; }
     static _process_audio(e) { the_AudioIn.process_audio(e); }
 }
 
@@ -457,58 +476,66 @@ class Game {
             for (let y=0; y<canvas.h; y+=100) { this.gfx.draw_rect(0,y,canvas.w,1, config.color_grid); }
         }
     }
-    event_mouse(event, x, y) {
+    event_mouse_down(x, y) {
         if (the_mouse_move == null) return;
-        if (event == Game.MOUSE_DOWN) 
-            the_mouse_move.mouse_down(x, y);
-        else if (event == Game.MOUSE_UP)
-            the_mouse_move.mouse_up(x, y);
-        else if (event == Game.MOUSE_MOVE)
-            the_mouse_move.mouse_move(x, y);
+        the_mouse_move.mouse_down(x, y);
+    }
+    event_mouse_up(x, y) {
+        if (the_mouse_move == null) return;
+        the_mouse_move.mouse_up(x, y);
+    }
+    event_mouse_move(x, y) {
+        if (the_mouse_move == null) return;
+        the_mouse_move.mouse_move(x, y);
     }
     static _event_io_changed() {
         if (_game != null) { _game.stop(); }
         _game.new_id();
         const ox = el("sel_output").selectedIndex;
-        el("jags_hdr")    .style.display = (ox == out_fire) ? "block" : "none";
-        el("jags")        .style.display = (ox == out_fire) ? "block" : "none";
-        el("pcircles_hdr").style.display = (ox == out_pcircles) ? "block" : "none";
-        el("num_pcircles").style.display = (ox == out_pcircles) ? "block" : "none";
-        el("chase_hdr").style.display = (ox == out_chase) ? "block" : "none";
-        el("num_chase").style.display = (ox == out_chase) ? "block" : "none";
-        el("stararms_hdr").style.display = (ox == out_star) ? "block" : "none";
-        el("num_stararms").style.display = (ox == out_star) ? "block" : "none";
-        el("num_stars_hdr").style.display = (ox == out_star) ? "block" : "none";
-        el("num_stars")   .style.display = (ox == out_star) ? "block" : "none";
+        hide("jags_hdr",      (ox != out_fire));
+        hide("jags",          (ox != out_fire));
+        hide("pcircles_hdr",  (ox != out_pcircles));
+        hide("num_pcircles",  (ox != out_pcircles));
+        hide("chase_hdr",     (ox != out_chase));
+        hide("num_chase",     (ox != out_chase));
+        hide("stararms_hdr",  (ox != out_star));
+        hide("num_stararms",  (ox != out_star));
+        hide("num_stars_hdr", (ox != out_star));
+        hide("num_stars",     (ox != out_star));
     }
 
-    static _event_mousedown(e) { if (_game != null) _game.event_mouse(Game.MOUSE_DOWN, e.offsetX, e.offsetY); }
-    static _event_mouseup(e) { if (_game != null) _game.event_mouse(Game.MOUSE_UP, e.offsetX, e.offsetY); }
-    static _event_mousemove(e) { if (_game != null) _game.event_mouse(Game.MOUSE_MOVE, e.offsetX, e.offsetY); }
-
-    static MOUSE_DOWN = 0;
-    static MOUSE_UP   = 1;
-    static MOUSE_MOVE = 2;
+    static _event_mousedown(e) { if (_game != null) _game.event_mouse_down(e.offsetX, e.offsetY); }
+    static _event_mouseup(e)   { if (_game != null) _game.event_mouse_up(e.offsetX, e.offsetY); }
+    static _event_mousemove(e) { if (_game != null) _game.event_mouse_move(e.offsetX, e.offsetY); }
 }; // class Game
 
 // --------------------------------------------------------------------
-function close_panel() {
-    const panel = el("panel");
-    const closed = (panel.style.display == "none");
-    panel.style.display = closed ? "block" : "none";
-    el("close_btn").value = closed ? "\u2716" : "\u2630";
+function hide(ename, hidden) {
+    el(ename).style.display = hidden ? "none" : "block";
+}
+function is_hidden(ename) {
+    return el(ename).style.display == "none";
 }
 
-function canvas_to_window() {
+function close_panel() {
+    const closed = !is_hidden("ctls");
+    hide("ctls", closed);
+    hide("open_btn", !closed);
+    fit_canvas();
+}
+
+function fit_canvas() {
     const canvas = el("canvas");
-    const s = 20;
-    canvas.width = window.innerWidth - s;
-    canvas.height = window.innerHeight - 3* el("ctls").offsetHeight;
+    const ctls = el(is_hidden("ctls") ? "close_ctls" : "ctls");
+    const fx = 20; // FIXME: fudge
+    const fy = 20; // FIXME: fudge
+    canvas.width = window.innerWidth - fx;
+    canvas.height = window.innerHeight - ctls.offsetHeight - fy;
     return canvas;
 }
 
 function canvas_resize() {
-    const canvas = canvas_to_window();
+    const canvas = fit_canvas();
     if (_game != null) _game.resize(canvas.width, canvas.height);
 }
 
@@ -520,13 +547,13 @@ function run_game() {
 
 function main() {
     munge_config();
-    const canvas = canvas_to_window();
+    const canvas = fit_canvas();
     const gfx = new Graphics(canvas.getContext("2d"));
     _game = new Game(gfx);
     _game.resize(canvas.width, canvas.height);
     window.addEventListener('resize', canvas_resize, false);
     document.addEventListener('mousedown', Game._event_mousedown);
-    document.addEventListener('mouseup', Game._event_mouseup);
+    document.addEventListener('mouseup',   Game._event_mouseup);
     document.addEventListener('mousemove', Game._event_mousemove);
     Game._event_io_changed();
     run_game();
