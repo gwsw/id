@@ -48,7 +48,7 @@
  </table>
 </div>
 <div>
- <input type="button" value="X" onclick="close_panel()">
+ <input type="button" id="close_btn" value="&#10006;" onclick="close_panel()">
 </div>
 
 <script src="../jlib/gfx.js"></script>
@@ -494,7 +494,9 @@ class Game {
 // --------------------------------------------------------------------
 function close_panel() {
     const panel = el("panel");
-    panel.style.display = (panel.style.display == "none") ? "block" : "none";
+    const closed = (panel.style.display == "none");
+    panel.style.display = closed ? "block" : "none";
+    el("close_btn").value = closed ? "\u2716" : "\u2630";
 }
 
 function canvas_to_window() {
