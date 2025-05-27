@@ -36,6 +36,7 @@
     </select>
    </td>
    <td>
+    <input type="number" id="amp" value="1" min="1" max="10" onchange="Game._event_io_changed()" style="display:none"/><span id="amp_hdr">amp</span>
     <input type="number" id="jags" value="7" min="1" max="99" onchange="Game._event_io_changed()" style="display:none"/> <span id="jags_hdr">jags</span>
     <input type="number" id="num_pcircles" value="1" min="1" max="99" onchange="Game._event_io_changed()" style="display:none"/><span id="pcircles_hdr">circles</span>
     <input type="number" id="num_chase" value="1" min="1" max="99" onchange="Game._event_io_changed()" style="display:none"/><span id="chase_hdr">chase circles</span>
@@ -50,6 +51,7 @@
   <tr>
    <td>
     <input type="button" id="close_btn" value="&#x2716;" onclick="close_panel()">
+    &nbsp; Close
    </td>
   </tr>
  </table>
@@ -59,6 +61,7 @@
   <tr>
    <td>
     <input type="button" value="&#x2630;" onclick="close_panel()">
+    &nbsp; Settings
    </td>
   </tr>
  </table>
@@ -79,6 +82,10 @@ const out_pcircles  = 3;
 const out_chase     = 4;
 const out_star      = 5;
 
+const in_sine       = 0;
+const in_audio      = 1;
+const in_mouse      = 2;
+
 var config = {
     sine_period            : 5500,
     audio_samp_avg         : 200,
@@ -86,7 +93,6 @@ var config = {
     off_color_r            : 24,
     off_color_g            : 24,
     off_color_b            : 24,
-    def_amp                : 8,
 
     pc_min_radius          : 40,
     pc_max_radius          : 200,
@@ -346,7 +352,6 @@ class ID_AudioIn extends ID_Input {
             this.avg.push(0);
         }
         this.audio = audio_context(ID_AudioIn._process_audio);
-        this.set_amp(config.def_amp);
         the_AudioIn = this;
     }
     get_intensity() {
@@ -354,8 +359,10 @@ class ID_AudioIn extends ID_Input {
         for (const val of this.avg) {
             total += val;
         }
-        let val = (this.avg.length == 0) ? 0 : total * this.amp / this.avg.length;
+        let val = (this.avg.length == 0) ? 0 :
+            total * ID_AudioIn.get_amp() / this.avg.length;
         if (val > 1) val = 1;
+        else if (val < -1) val = -1;
         return val;
     }
     process_audio(e) {
@@ -367,9 +374,11 @@ class ID_AudioIn extends ID_Input {
             if (++this.avg_x >= this.avg.length) this.avg_x = 0;
         }
     }
-    get_amp() { return this.amp; }
-    set_amp(amp) { this.amp = amp; }
-    static _process_audio(e) { the_AudioIn.process_audio(e); }
+    static get_amp() {
+        const val = el("amp").valueAsNumber;
+        return val;
+    }
+    static _process_audio(e) { if (the_AudioIn != null) the_AudioIn.process_audio(e); }
 }
 
 // --------------------------------------------------------------------
@@ -491,7 +500,10 @@ class Game {
     static _event_io_changed() {
         if (_game != null) { _game.stop(); }
         _game.new_id();
+        const ix = el("sel_input").selectedIndex;
         const ox = el("sel_output").selectedIndex;
+        hide("amp_hdr",       (ix != in_audio));
+        hide("amp",           (ix != in_audio));
         hide("jags_hdr",      (ox != out_fire));
         hide("jags",          (ox != out_fire));
         hide("pcircles_hdr",  (ox != out_pcircles));
